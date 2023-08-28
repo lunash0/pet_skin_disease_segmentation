@@ -1,28 +1,29 @@
 import tensorflow as tf
-from tensorflow.keras.layers import *
-from tensorflow.keras.models import *
-from tensorflow.keras.optimizers import *
+from keras.layers import *
+from keras.models import *
+from keras.optimizers import *
+from keras.metrics import Precision, Recall, MeanIoU
 
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from common_conf import *
+from . import common_conf
 
 # input image String to Tensor
 def transform_image(image_string): # image_string은 이미지를 나타내는 byte string(jpeg 형식으로 인코딩된 이미지 데이터)
     image = tf.io.decode_jpeg(image_string, channels=3)
-    image = tf.image.resize(image, IMAGE_SIZE)
+    image = tf.image.resize(image, common_conf.IMAGE_SIZE)
     return image
 
 
 # mask image String to Tensor
 def transform_mask(image_string, opt=True):
     mask = tf.io.decode_jpeg(image_string)
-    mask = tf.image.resize(mask, IMAGE_SIZE)
+    mask = tf.image.resize(mask, common_conf.IMAGE_SIZE)
     if opt:
         mask = tf.one_hot(tf.cast(mask, dtype=tf.int32), depth=2, axis=-1)
-        mask = tf.reshape(mask, MASK_SHAPE)
+        mask = tf.reshape(mask, common_conf.MASK_SHAPE)
     else:
         pass
     return mask
@@ -56,7 +57,7 @@ def tfrc_list(tfrc_path, split='train', label=None, asymp=False):
     else:
         raise Exception("you should select parameter 'asymp' between True or False")
 
-    file_list = f'*{label}*{asymptomatic}*{split}*{EXTENSION_TFRECORDS}'
+    file_list = f'*{label}*{asymptomatic}*{split}*{common_conf.EXTENSION_TFRECORDS}'
     return os.path.join(tfrc_path, file_list)
 
 # iou : Intersection over Union (Jaccard Index) : 객체 검출이나 분할 작업에서 많이 사용되는 성능 측정 지표 중 하나로, 예측된 결과와 실제 라벨 간의 겹치는 영역을 측정
@@ -72,7 +73,7 @@ def iou(y_true, y_pred): # TensorFlow 함수
     return tf.numpy_function(f, [y_true, y_pred], tf.float32)
 
 def build_model(lr):
-    input_size = IMAGE_SHAPE
+    input_size = common_conf.IMAGE_SHAPE
 
     inputs = Input(input_size, name="INPUT")
     conv1 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(inputs)
@@ -116,10 +117,11 @@ def build_model(lr):
 
     model = Model(inputs = inputs, outputs = conv10)
 
-    model.compile(optimizer = Adam(learning_rate = lr), loss=tf.keras.losses.CategoricalCrossentropy(),
-                metrics = ['acc', tf.keras.metrics.Precision(name='precision'),
-                            tf.keras.metrics.Recall(name='recall'),
-                            tf.keras.metrics.MeanIoU(num_classes=2, name='miou'), iou])
+    # model.compile(optimizer = Adam(learning_rate = lr), loss=tf.keras.losses.CategoricalCrossentropy(),
+    #             metrics = ['acc', tf.keras.metrics.Precision(name='precision'),
+    #                         tf.keras.metrics.Recall(name='recall'),
+    #                         tf.keras.metrics.MeanIoU(num_classes=2, name='miou'), iou])
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     return model
 
 # define function for drawing polygon in image
